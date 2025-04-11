@@ -1,0 +1,96 @@
+```{r, echo=FALSE, warning=FALSE, message=FALSE}
+#loading libraries
+
+library(ggplot2)
+library(RColorBrewer)
+library(viridis)
+library(tidyverse)
+library(gtsummary)
+library(gt)
+library(knitr)
+library(webshot2)
+library(here)
+library(plotly)
+
+
+```
+
+```{r, echo=FALSE, warning=FALSE, message=FALSE}
+
+#reading in data
+
+CLU0106_PFAS_clean_half_min_new <- readRDS(here::here("final/data", "CLU0106_PFAS_clean_half_min_new.rds"))
+
+PFAS_long <- CLU0106_PFAS_clean_half_min_new %>% 
+  pivot_longer(cols = c("PFHxS","PFNA", "PFOA", "PFOS", "N-MeFOSAA", 
+                        "PFBS","PFHps","PFDA", "PFDoA", 
+                        "PFHpA", "PFHxA","PFTrDA", "PFUnA","PFPeAS") , 
+               names_to = "PFAS", values_to = "Concentration")
+
+PFAS_long_new <- PFAS_long %>% select("sample_id", "PFAS", "Concentration")
+
+#making boxplot
+
+plot1<- ggplot(PFAS_long_new, aes(x= PFAS, y = Concentration, 
+                                  fill = PFAS)) +
+  geom_boxplot(outliers = FALSE) +
+  labs(title = "Figure 1. Distribution of PFAS Concentrations",
+       x = "PFAS Type",
+       y = "Concentration (ng/mL)"
+  ) + 
+  theme(axis.text.x = element_text(angle =45, hjust=1)) +
+  theme(legend.title = element_text(color = "black", size = 12, face = "bold"))+
+  scale_fill_viridis_d(option = "viridis", name = "PFAS")
+
+```
+
+```{r, warning=FALSE, message=FALSE}
+
+plotly1 <- ggplotly(plot1, tooltip = "all") %>%
+  layout(
+    title = "Figure 1. Distribution of PFAS Concentrations",
+    xaxis = list(
+      title = "PFAS Type"
+    ),
+    yaxis = list(
+      title = "Concentration (ng/mL)",
+      rangeslider = list(visible = TRUE)
+    ),
+    updatemenus = list(
+      list(
+        buttons = list(
+          list(
+            method = "relayout",
+            args = list("yaxis.type", "linear"),
+            label = "Linear Scale"
+          ),
+          list(
+            method = "relayout",
+            args = list("yaxis.type", "log"),
+            label = "Log Scale"
+          )
+        ),
+        direction = "down",
+        showactive = TRUE,
+        x = 0.1,
+        xanchor = "left",
+        y = 1.2,
+        yanchor = "top"
+      )
+    )
+  ) %>%
+  config(
+    displayModeBar = TRUE,
+    modeBarButtonsToAdd = c("lasso2d", "select2d")
+  )
+
+```
+
+```{r}
+library(htmlwidgets)
+
+saveWidget(plotly1, file = here::here("final/output/plotly1.html"), selfcontained = TRUE)
+```
+
+
+

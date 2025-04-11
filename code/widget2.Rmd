@@ -1,0 +1,223 @@
+```{r, echo=FALSE, warning=FALSE, message=FALSE}
+#loading libraries
+
+library(ggplot2)
+library(RColorBrewer)
+library(viridis)
+library(tidyverse)
+library(gtsummary)
+library(gt)
+library(knitr)
+library(webshot2)
+library(here)
+library(plotly)
+library(bkmr)
+
+```
+
+
+```{r, echo=FALSE, warning=FALSE, message=FALSE}
+#reading in data for bkmr results
+
+PFAS_outcome_merged <- readRDS(here::here("final/data", "PFAS_outcome_merged.rds"))
+
+# Cholesterol model
+bkmr_choles_model <- readRDS(here::here("final/data", "bkmr_choles_model.rds"))
+
+# SBP model
+bkmr_SBP_model <- readRDS(here::here("final/data", "bkmr_SBP_model.rds"))
+
+#Hemo model
+bkmr_hemo_model <- readRDS(here::here("final/data", "bkmr_hemo_model.rds"))
+
+#Glucose model
+bkmr_glucose_model <- readRDS(here::here("final/data", "bkmr_glucose_model.rds"))
+
+```
+
+
+### NOTE
+## I plan to add these 4 plots as one cohesive widget onto a flex dashboard and allow a toggle function to switch between the plots
+
+
+```{r, echo=FALSE, warning=FALSE, message=FALSE}
+#ggplot for choles
+risks.overall_choles = OverallRiskSummaries(fit = bkmr_choles_model, qs = seq(0.25, 0.75, by = 0.05), q.fixed = 0.5) 
+
+bkmr_choles_plot <- ggplot(risks.overall_choles, aes(quantile, est, ymin = est - 1.96*sd, ymax = est + 1.96*sd)) + 
+  geom_hline(yintercept = 0, lty = 2, col = "brown") + geom_pointrange() +    
+  theme_minimal() + theme(plot.title=element_text(hjust = 0.5)) + xlab("Quantiles of Joint Exposures") + 
+  ylab("Overall PFAS Mixture Effect on Total Cholesterol")
+
+```
+
+```{r, echo=FALSE, warning=FALSE, message=FALSE}
+#ggplot for SBP
+risks.overall_SBP = OverallRiskSummaries(fit = bkmr_SBP_model, qs = seq(0.25, 0.75, by = 0.05), q.fixed = 0.5)
+
+bkmr_SBP_plot <- ggplot(risks.overall_SBP, aes(quantile, est, ymin = est - 1.96*sd, ymax = est + 1.96*sd)) + 
+  geom_hline(yintercept = 0, lty = 2, col = "brown") + geom_pointrange() +    
+  theme_minimal() + theme(plot.title=element_text(hjust = 0.5)) + xlab("Quantiles of Joint PFAS Exposures") + 
+  ylab("Overall Mixture Effect on Systolic Blood Pressure")
+
+
+```
+
+
+```{r, echo=FALSE, warning=FALSE, message=FALSE}
+#ggplot for hemo
+risks.overall_hemo = OverallRiskSummaries(fit = bkmr_hemo_model, qs = seq(0.25, 0.75, by = 0.05), q.fixed = 0.5)
+
+bkmr_hemo_plot <- ggplot(risks.overall_hemo, aes(quantile, est, ymin = est - 1.96*sd, ymax = est + 1.96*sd)) + 
+  geom_hline(yintercept = 0, lty = 2, col = "brown") + geom_pointrange() +    
+  theme_minimal() + theme(plot.title=element_text(hjust = 0.5)) + xlab("Quantiles of Joint PFAS Exposures") + 
+  ylab("Overall Mixture Effect on Hemoglobin A1c")
+
+```
+
+```{r, echo=FALSE, warning=FALSE, message=FALSE}
+#ggplot for glucose
+risks.overall_glucose = OverallRiskSummaries(fit = bkmr_glucose_model, qs = seq(0.25, 0.75, by = 0.05), q.fixed = 0.5)
+
+bkmr_glucose_plot <- ggplot(risks.overall_glucose, aes(quantile, est, ymin = est - 1.96*sd, ymax = est + 1.96*sd)) + 
+  geom_hline(yintercept = 0, lty = 2, col = "brown") + geom_pointrange() +    
+  theme_minimal() + theme(plot.title=element_text(hjust = 0.5)) + xlab("Quantiles of Joint PFAS Exposures") + 
+  ylab("Overall Mixture Effect on Glucose")
+
+```
+
+
+```{r}
+#Plotly for cholesterol BKMR
+plotly2_choles <- ggplotly(bkmr_choles_plot, tooltip = "all") %>% 
+  layout(
+    title = "Figure 2. Total Effect of PFAS Mxiture on Total Cholesterol Levels",
+    xaxis = list(
+      title = "Quantiles of Joint Exposure"
+    ),
+    yaxis = list(
+      title = "Overall Effect"
+    ),
+    updatemenus = list(
+      list(
+         type = "slider",
+        active = 3,
+        x = -0.1, xanchor = "left", y = 1.15, yanchor = "top",
+        currentvalue = list(prefix = "Opacity: "),
+        steps = lapply(seq(0.2, 1, by = 0.2), function(op) {
+          list(method = "restyle", args = list("marker.opacity", op), label = paste0(op * 100, "%"))
+        })
+      )
+    )
+  ) %>%
+  config(
+    displayModeBar = TRUE,
+    modeBarButtonsToAdd = c("lasso2d", "select2d")
+  )
+
+```
+
+```{r}
+#SBP plotly
+plotly3_SBP <- ggplotly(bkmr_SBP_plot, tooltip = "all") %>% 
+  layout(
+    title = "Figure 3. Total Effect of PFAS Mxiture on Systolic Blood Pressure (SBP)",
+    xaxis = list(
+      title = "Quantiles of Joint Exposure"
+    ),
+    yaxis = list(
+      title = "Overall Effect"
+    ),
+    updatemenus = list(
+      list(
+         type = "slider",
+        active = 3,
+        x = -0.1, xanchor = "left", y = 1.15, yanchor = "top",
+        currentvalue = list(prefix = "Opacity: "),
+        steps = lapply(seq(0.2, 1, by = 0.2), function(op) {
+          list(method = "restyle", args = list("marker.opacity", op), label = paste0(op * 100, "%"))
+        })
+      )
+    )
+  ) %>%
+  config(
+    displayModeBar = TRUE,
+    modeBarButtonsToAdd = c("lasso2d", "select2d")
+  )
+```
+
+```{r}
+#Hemo plotly
+plotly4_hemo <- ggplotly(bkmr_hemo_plot, tooltip = "all") %>% 
+  layout(
+    title = "Figure 4. Total Effect of PFAS Mxiture on Hemoglobin A1C Levels",
+    xaxis = list(
+      title = "Quantiles of Joint Exposure"
+    ),
+    yaxis = list(
+      title = "Overall Effect"
+    ),
+    updatemenus = list(
+      list(
+         type = "slider",
+        active = 3,
+        x = -0.1, xanchor = "left", y = 1.15, yanchor = "top",
+        currentvalue = list(prefix = "Opacity: "),
+        steps = lapply(seq(0.2, 1, by = 0.2), function(op) {
+          list(method = "restyle", args = list("marker.opacity", op), label = paste0(op * 100, "%"))
+        })
+      )
+    )
+  ) %>%
+  config(
+    displayModeBar = TRUE,
+    modeBarButtonsToAdd = c("lasso2d", "select2d")
+  )
+
+
+```
+
+```{r}
+#Glucose plotly
+
+plotly5_glucose <- ggplotly(bkmr_glucose_plot, tooltip = "all") %>% 
+  layout(
+    title = "Figure 5. Total Effect of PFAS Mxiture on Glucose Levels",
+    xaxis = list(
+      title = "Quantiles of Joint Exposure"
+    ),
+    yaxis = list(
+      title = "Overall Effect"
+    ),
+    updatemenus = list(
+      list(
+         type = "slider",
+        active = 3,
+        x = -0.1, xanchor = "left", y = 1.15, yanchor = "top",
+        currentvalue = list(prefix = "Opacity: "),
+        steps = lapply(seq(0.2, 1, by = 0.2), function(op) {
+          list(method = "restyle", args = list("marker.opacity", op), label = paste0(op * 100, "%"))
+        })
+      )
+    )
+  ) %>%
+  config(
+    displayModeBar = TRUE,
+    modeBarButtonsToAdd = c("lasso2d", "select2d")
+  )
+```
+
+
+```{r, saving-widgets}
+library(htmlwidgets)
+saveWidget(plotly2_choles, file = here::here("final/output/plotly2_choles.html"), selfcontained = TRUE)
+
+saveWidget(plotly3_SBP, file = here::here("final/output/plotly3_SBP.html"), selfcontained = TRUE)
+
+saveWidget(plotly4_hemo, file = here::here("final/output/plotly4_hemo.html"), selfcontained = TRUE)
+
+saveWidget(plotly5_glucose, file = here::here("final/output/plotly5_glucose.html"), selfcontained = TRUE)
+```
+
+
+
