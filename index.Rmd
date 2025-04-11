@@ -1,0 +1,270 @@
+---
+title: "ILE Dashboard"
+author: "Parth Jariwala"
+date: "`r Sys.Date()`"
+output: 
+  flexdashboard::flex_dashboard:
+    orientation: rows
+    vertical_layout: fill
+---
+
+```{r setup, include=FALSE}
+# Loading libraries
+library(flexdashboard)
+library(ggplot2)
+library(RColorBrewer)
+library(viridis)
+library(tidyverse)
+library(gtsummary)
+library(gt)
+library(knitr)
+library(webshot2)
+library(here)
+library(plotly)
+library(bkmr)
+library(htmlwidgets)
+```
+
+
+PFAS Boxplots
+============
+Row
+-----------------------------------------------------------------------
+### PFAS Boxplots
+```{r, echo=FALSE, warning=FALSE, message=FALSE}
+
+# Reading in data
+CLU0106_PFAS_clean_half_min_new <- readRDS(here::here("final/data", "CLU0106_PFAS_clean_half_min_new.rds"))
+
+PFAS_long <- CLU0106_PFAS_clean_half_min_new %>% 
+  pivot_longer(cols = c("PFHxS", "PFNA", "PFOA", "PFOS", "N-MeFOSAA", 
+                        "PFBS", "PFHps", "PFDA", "PFDoA", 
+                        "PFHpA", "PFHxA", "PFTrDA", "PFUnA", "PFPeAS"), 
+               names_to = "PFAS", values_to = "Concentration")
+
+PFAS_long_new <- PFAS_long %>% select(sample_id, PFAS, Concentration)
+
+# Making boxplot
+plot1 <- ggplot(PFAS_long_new, aes(x = PFAS, y = Concentration, fill = PFAS)) +
+  geom_boxplot(outliers = FALSE) +
+  labs(title = "Figure 1. Distribution of PFAS Concentrations",
+       x = "PFAS Type",
+       y = "Concentration (ng/mL)") + 
+  theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
+  theme(legend.title = element_text(color = "black", size = 12, face = "bold")) +
+  scale_fill_viridis_d(option = "viridis", name = "PFAS")
+
+plotly1 <- ggplotly(plot1, tooltip = "all") %>%
+  layout(
+    title = "Figure 1. Distribution of PFAS Concentrations",
+    xaxis = list(title = "PFAS Type"),
+    yaxis = list(title = "Concentration (ng/mL)", rangeslider = list(visible = TRUE)),
+    updatemenus = list(
+      list(
+        buttons = list(
+          list(method = "relayout", args = list("yaxis.type", "linear"), label = "Linear Scale"),
+          list(method = "relayout", args = list("yaxis.type", "log"), label = "Log Scale")
+        ),
+        direction = "down",
+        showactive = TRUE,
+        x = 0.1,
+        xanchor = "left",
+        y = 1.2,
+        yanchor = "top"
+      )
+    )
+  ) %>%
+  config(
+    displayModeBar = TRUE,
+    modeBarButtonsToAdd = c("lasso2d", "select2d")
+  )
+
+plotly1
+
+```
+
+
+BKMR Results 1 {.tabset}
+============
+Row
+-----------------------------------------------------------------------
+
+### Cholesterol
+```{r, echo=FALSE, warning=FALSE, message=FALSE}
+# Reading in data for BKMR results
+PFAS_outcome_merged <- readRDS(here::here("final/data", "PFAS_outcome_merged.rds"))
+bkmr_choles_model <- readRDS(here::here("final/data", "bkmr_choles_model.rds"))
+
+# Generate overall risk summary for cholesterol
+risks.overall_choles <- OverallRiskSummaries(fit = bkmr_choles_model, qs = seq(0.25, 0.75, by = 0.05), q.fixed = 0.5) 
+
+bkmr_choles_plot <- ggplot(risks.overall_choles, aes(quantile, est, ymin = est - 1.96 * sd, ymax = est + 1.96 * sd)) + 
+  geom_hline(yintercept = 0, lty = 2, col = "brown") +
+  geom_pointrange() +    
+  theme_minimal() +
+  theme(plot.title = element_text(hjust = 0.5, size = 8)) +
+  xlab("Quantiles of Joint Exposures") +
+  ylab("Overall PFAS Mixture Effect on Total Cholesterol")
+
+plotly2_choles <- ggplotly(bkmr_choles_plot, tooltip = "all") %>% 
+  layout(
+    title = list(
+      text = "Figure 2. Total Effect of PFAS Mixture on Total Cholesterol Levels",
+      font = list(size = 12)
+    ),
+    xaxis = list(title = "Quantiles of Joint Exposure"),
+    yaxis = list(title = "Overall Effect"),
+    updatemenus = list(
+      list(
+        type = "slider",
+        active = 3,
+        x = -0.1, xanchor = "left", y = 1.15, yanchor = "top",
+        currentvalue = list(prefix = "Opacity: "),
+        steps = lapply(seq(0.2, 1, by = 0.2), function(op) {
+          list(method = "restyle", args = list("marker.opacity", op), label = paste0(op * 100, "%"))
+        })
+      )
+    )
+  ) %>%
+  config(
+    displayModeBar = TRUE,
+    modeBarButtonsToAdd = c("lasso2d", "select2d")
+  )
+
+plotly2_choles
+
+```
+
+
+
+### Systolic Blood Pressure (SBP)
+```{r, echo=FALSE, warning=FALSE, message=FALSE}
+bkmr_SBP_model <- readRDS(here::here("final/data", "bkmr_SBP_model.rds"))
+risks.overall_SBP <- OverallRiskSummaries(fit = bkmr_SBP_model, qs = seq(0.25, 0.75, by = 0.05), q.fixed = 0.5)
+
+bkmr_SBP_plot <- ggplot(risks.overall_SBP, aes(quantile, est, ymin = est - 1.96 * sd, ymax = est + 1.96 * sd)) + 
+  geom_hline(yintercept = 0, lty = 2, col = "brown") +
+  geom_pointrange() +    
+  theme_minimal() +
+  theme(plot.title = element_text(hjust = 0.5, size = 8)) +
+  xlab("Quantiles of Joint PFAS Exposures") +
+  ylab("Overall Mixture Effect on Systolic Blood Pressure")
+
+plotly3_SBP <- ggplotly(bkmr_SBP_plot, tooltip = "all") %>% 
+  layout(
+    title = list(
+          text = "Figure 3. Total Effect of PFAS Mixture on Systolic Blood Pressure (SBP)",
+          font = list(size = 12)
+            ),
+    xaxis = list(title = "Quantiles of Joint Exposure"),
+    yaxis = list(title = "Overall Effect"),
+    updatemenus = list(
+      list(
+        type = "slider",
+        active = 3,
+        x = -0.1, xanchor = "left", y = 1.15, yanchor = "top",
+        currentvalue = list(prefix = "Opacity: "),
+        steps = lapply(seq(0.2, 1, by = 0.2), function(op) {
+          list(method = "restyle", args = list("marker.opacity", op), label = paste0(op * 100, "%"))
+        })
+      )
+    )
+  ) %>%
+  config(
+    displayModeBar = TRUE,
+    modeBarButtonsToAdd = c("lasso2d", "select2d")
+  )
+
+plotly3_SBP
+
+```
+
+
+
+BKMR Results 2 {.tabset}
+============
+Row
+-----------------------------------------------------------------------
+
+### Hemoglobin-A1C (HA1C)
+```{r, echo=FALSE, warning=FALSE, message=FALSE}
+bkmr_hemo_model <- readRDS(here::here("final/data", "bkmr_hemo_model.rds"))
+risks.overall_hemo <- OverallRiskSummaries(fit = bkmr_hemo_model, qs = seq(0.25, 0.75, by = 0.05), q.fixed = 0.5)
+
+bkmr_hemo_plot <- ggplot(risks.overall_hemo, aes(quantile, est, ymin = est - 1.96 * sd, ymax = est + 1.96 * sd)) + 
+  geom_hline(yintercept = 0, lty = 2, col = "brown") +
+  geom_pointrange() +    
+  theme_minimal() +
+  theme(plot.title = element_text(hjust = 0.5, size = 8)) +
+  xlab("Quantiles of Joint PFAS Exposures") +
+  ylab("Overall Mixture Effect on Hemoglobin A1c")
+
+plotly4_hemo <- ggplotly(bkmr_hemo_plot, tooltip = "all") %>% 
+  layout(
+    title = list(
+      text = "Figure 4. Total Effect of PFAS Mixture on Hemoglobin A1C Levels",
+      font = list(size = 12)
+            ),
+    xaxis = list(title = "Quantiles of Joint Exposure"),
+    yaxis = list(title = "Overall Effect"),
+    updatemenus = list(
+      list(
+        type = "slider",
+        active = 3,
+        x = -0.1, xanchor = "left", y = 1.15, yanchor = "top",
+        currentvalue = list(prefix = "Opacity: "),
+        steps = lapply(seq(0.2, 1, by = 0.2), function(op) {
+          list(method = "restyle", args = list("marker.opacity", op), label = paste0(op * 100, "%"))
+        })
+      )
+    )
+  ) %>%
+  config(
+    displayModeBar = TRUE,
+    modeBarButtonsToAdd = c("lasso2d", "select2d")
+  )
+
+plotly4_hemo
+```
+
+
+### Glucose
+```{r, echo=FALSE, warning=FALSE, message=FALSE}
+bkmr_glucose_model <- readRDS(here::here("final/data", "bkmr_glucose_model.rds"))
+risks.overall_glucose <- OverallRiskSummaries(fit = bkmr_glucose_model, qs = seq(0.25, 0.75, by = 0.05), q.fixed = 0.5)
+
+bkmr_glucose_plot <- ggplot(risks.overall_glucose, aes(quantile, est, ymin = est - 1.96 * sd, ymax = est + 1.96 * sd)) + 
+  geom_hline(yintercept = 0, lty = 2, col = "brown") +
+  geom_pointrange() +    
+  theme_minimal() +
+  theme(plot.title = element_text(hjust = 0.5, size = 8)) +
+  xlab("Quantiles of Joint PFAS Exposures") +
+  ylab("Overall Mixture Effect on Glucose")
+
+plotly5_glucose <- ggplotly(bkmr_glucose_plot, tooltip = "all") %>% 
+  layout(
+    title = list(
+      text = "Figure 5. Total Effect of PFAS Mixture on Glucose Levels",
+      font = list(size = 12)
+            ),
+    xaxis = list(title = "Quantiles of Joint Exposure"),
+    yaxis = list(title = "Overall Effect"),
+    updatemenus = list(
+      list(
+        type = "slider",
+        active = 3,
+        x = -0.1, xanchor = "left", y = 1.15, yanchor = "top",
+        currentvalue = list(prefix = "Opacity: "),
+        steps = lapply(seq(0.2, 1, by = 0.2), function(op) {
+          list(method = "restyle", args = list("marker.opacity", op), label = paste0(op * 100, "%"))
+        })
+      )
+    )
+  ) %>%
+  config(
+    displayModeBar = TRUE,
+    modeBarButtonsToAdd = c("lasso2d", "select2d")
+  )
+
+plotly5_glucose
+```
