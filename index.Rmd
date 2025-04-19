@@ -5,7 +5,15 @@ date: "`r Sys.Date()`"
 output: 
   flexdashboard::flex_dashboard:
     orientation: rows
-    vertical_layout: fill
+    vertical_layout: scroll
+    navbar:
+      - icon: "fa-github"
+        href: "https://github.com/19jariwalap/final_DATA555"
+        align: "right"
+      - icon: "fa-envelope"
+        href: "mailto:parth.jariwala@emory.edu"
+        align: "right"
+        title: "Email me with any questions"
 ---
 
 ```{r setup, include=FALSE}
@@ -25,16 +33,24 @@ library(bkmr)
 library(htmlwidgets)
 ```
 
-
-PFAS Boxplots
+**PFAS Boxplots**
 ============
 Row
 -----------------------------------------------------------------------
-### PFAS Boxplots
+
+### **Overview & Key Takeaway**
+
+Here you’ll find interactive visualizations of PFAS concentrations and BKMR mixture analyses.  
+Use the controls on each plot to switch scales or adjust opacity, and click through the tabs to compare outcomes.
+
+In this interactive Plotly, distribution of PFAS across the cohort were seen in 14 different PFAS where PFOS, PFOA, PFNA, and PFHxS had the most abundant concentrations. With the use of the lasso tool, the viewer is able to investigate the less abundant PFAS concentrations and take necessary images. Lastly, the log‑scale button allows the data to be normalized or have better distribution when the user toggles the scale of the plot.
+
+## **PFAS Boxplots**
+
 ```{r, echo=FALSE, warning=FALSE, message=FALSE}
 
 # Reading in data
-CLU0106_PFAS_clean_half_min_new <- readRDS(here::here("final/data", "CLU0106_PFAS_clean_half_min_new.rds"))
+CLU0106_PFAS_clean_half_min_new <- readRDS(here::here("data", "CLU0106_PFAS_clean_half_min_new.rds"))
 
 PFAS_long <- CLU0106_PFAS_clean_half_min_new %>% 
   pivot_longer(cols = c("PFHxS", "PFNA", "PFOA", "PFOS", "N-MeFOSAA", 
@@ -56,6 +72,8 @@ plot1 <- ggplot(PFAS_long_new, aes(x = PFAS, y = Concentration, fill = PFAS)) +
 
 plotly1 <- ggplotly(plot1, tooltip = "all") %>%
   layout(
+    width  = 1300,
+    height = 600, 
     title = "Figure 1. Distribution of PFAS Concentrations",
     xaxis = list(title = "PFAS Type"),
     yaxis = list(title = "Concentration (ng/mL)", rangeslider = list(visible = TRUE)),
@@ -84,16 +102,22 @@ plotly1
 ```
 
 
-BKMR Results 1 {.tabset}
+**BKMR Results 1** {.tabset}
 ============
 Row
 -----------------------------------------------------------------------
+### **Overview & Key Takeaway**
+The purpose of these 4 interactive plots was to understand how cholesterol, systolic blood pressure, hemoglobin-A1C, and glucose levels are affected when exposed to different quantiles of a combined PFAS mixture. If the lines cross the dotted lines, the relationship is not statistically significant. 
 
-### Cholesterol
+In the cholesterol Plotly, when hovered over, it suggests that exposure to a PFAS mixture increased cholesterol levels (estimate value = 4.33) after reaching the 75th percentile of exposure, although not statistically significant. Sytolic blood pressure is also statistically nonsignifcant and does not define a clear trend.
+
+Row
+-----------------------------------------------------------------------
+### **Cholesterol**
 ```{r, echo=FALSE, warning=FALSE, message=FALSE}
 # Reading in data for BKMR results
-PFAS_outcome_merged <- readRDS(here::here("final/data", "PFAS_outcome_merged.rds"))
-bkmr_choles_model <- readRDS(here::here("final/data", "bkmr_choles_model.rds"))
+PFAS_outcome_merged <- readRDS(here::here("data", "PFAS_outcome_merged.rds"))
+bkmr_choles_model <- readRDS(here::here("data", "bkmr_choles_model.rds"))
 
 # Generate overall risk summary for cholesterol
 risks.overall_choles <- OverallRiskSummaries(fit = bkmr_choles_model, qs = seq(0.25, 0.75, by = 0.05), q.fixed = 0.5) 
@@ -137,9 +161,9 @@ plotly2_choles
 
 
 
-### Systolic Blood Pressure (SBP)
+### **Systolic Blood Pressure (SBP)**
 ```{r, echo=FALSE, warning=FALSE, message=FALSE}
-bkmr_SBP_model <- readRDS(here::here("final/data", "bkmr_SBP_model.rds"))
+bkmr_SBP_model <- readRDS(here::here("data", "bkmr_SBP_model.rds"))
 risks.overall_SBP <- OverallRiskSummaries(fit = bkmr_SBP_model, qs = seq(0.25, 0.75, by = 0.05), q.fixed = 0.5)
 
 bkmr_SBP_plot <- ggplot(risks.overall_SBP, aes(quantile, est, ymin = est - 1.96 * sd, ymax = est + 1.96 * sd)) + 
@@ -181,14 +205,22 @@ plotly3_SBP
 
 
 
-BKMR Results 2 {.tabset}
+**BKMR Results 2** {.tabset}
 ============
 Row
 -----------------------------------------------------------------------
+### **Overview & Key Takeaway**
+The purpose of these 4 interactive plots was to understand how cholesterol, systolic blood pressure, hemoglobin-A1C, and glucose levels are affected when exposed to different quantiles of a combined PFAS mixture. If the lines cross the dotted lines, the relationship is not statistically significant.
 
-### Hemoglobin-A1C (HA1C)
+
+Hemoglobin A1C has a clear downward trend meaning, as the mixtures exposure increases the HA1C levels are decreasing but does not display a statistically significant relationship.
+Glucose is also statistically nonsignifcant and does not define a clear trend.
+
+Row
+-----------------------------------------------------------------------
+### **Hemoglobin-A1C (HA1C)**
 ```{r, echo=FALSE, warning=FALSE, message=FALSE}
-bkmr_hemo_model <- readRDS(here::here("final/data", "bkmr_hemo_model.rds"))
+bkmr_hemo_model <- readRDS(here::here("data", "bkmr_hemo_model.rds"))
 risks.overall_hemo <- OverallRiskSummaries(fit = bkmr_hemo_model, qs = seq(0.25, 0.75, by = 0.05), q.fixed = 0.5)
 
 bkmr_hemo_plot <- ggplot(risks.overall_hemo, aes(quantile, est, ymin = est - 1.96 * sd, ymax = est + 1.96 * sd)) + 
@@ -228,9 +260,9 @@ plotly4_hemo
 ```
 
 
-### Glucose
+### **Glucose**
 ```{r, echo=FALSE, warning=FALSE, message=FALSE}
-bkmr_glucose_model <- readRDS(here::here("final/data", "bkmr_glucose_model.rds"))
+bkmr_glucose_model <- readRDS(here::here("data", "bkmr_glucose_model.rds"))
 risks.overall_glucose <- OverallRiskSummaries(fit = bkmr_glucose_model, qs = seq(0.25, 0.75, by = 0.05), q.fixed = 0.5)
 
 bkmr_glucose_plot <- ggplot(risks.overall_glucose, aes(quantile, est, ymin = est - 1.96 * sd, ymax = est + 1.96 * sd)) + 
@@ -268,3 +300,16 @@ plotly5_glucose <- ggplotly(bkmr_glucose_plot, tooltip = "all") %>%
 
 plotly5_glucose
 ```
+
+
+# **Dataset Description and Public Health Impact**
+
+**Acknowledgement:** Although this is not a public dataset, I was given permission by Dr. Douglas Walker, Dr. Erin Ferranti, and Dr. Anne Dunlop to use the clinical and PFAS dataset provided that the participant information is deidentified.
+
+
+**Dataset Decription:**
+Sixty Black women from the Atlanta African American Maternal‑Child Cohort (Liang et al.) provided prenatal samples, and Dr. Erin Ferranti collected maternal venous blood 8–10 months postpartum along with sociodemographic, health, BMI, pregnancy complication/outcome, and postnatal clinical data. Serum samples were stored at –80°C and processed at Dr. Douglas Walker’s CLUES lab at Rollins School of Public Health. I used liquid chromatography–mass spectrometry (LC‑MS) to quantify 14 PFAS compounds in the sera. The raw PFAS concentrations were imported into R, cleaned, normalized with half‑minimum imputation, and processed. Finally, I merged the cleaned PFAS data with Dr. Ferranti’s clinical dataset to create the final analysis-ready database. 
+
+
+**Public Health Impact:**
+This project builds on previous research by focusing on the cardiometabolic risk factors in the Atlanta African American Maternal Child Cohort, an underrepresented population affected by maternal mortality and cardiometabolic risk. Ultimately, this project seeks to address critical research gaps in maternal and environmental health by highlighting and emphasizing the health challenges African American women face.
