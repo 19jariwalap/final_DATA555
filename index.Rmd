@@ -40,10 +40,7 @@ Row
 
 ### **Overview & Key Takeaway**
 
-Here you’ll find interactive visualizations of PFAS concentrations and BKMR mixture analyses.  
-Use the controls on each plot to switch scales or adjust opacity, and click through the tabs to compare outcomes.
-
-In this interactive Plotly, distribution of PFAS across the cohort were seen in 14 different PFAS where PFOS, PFOA, PFNA, and PFHxS had the most abundant concentrations. With the use of the lasso tool, the viewer is able to investigate the less abundant PFAS concentrations and take necessary images. Lastly, the log‑scale button allows the data to be normalized or have better distribution when the user toggles the scale of the plot.
+This interactive chart shows levels of 14 per- and polyfluoroalkyl substances (PFAS), also known as “forever chemicals”. In my study, PFOS, PFOA, PFNA, and PFHxS (types of PFAS) had the highest concentrations in the participants. Using the lasso tool, you can select and snapshot the less abundant chemicals and switching to a log scale spreads the data out so both large and small values are easier to see.
 
 ## **PFAS Boxplots**
 
@@ -61,41 +58,50 @@ PFAS_long <- CLU0106_PFAS_clean_half_min_new %>%
 PFAS_long_new <- PFAS_long %>% select(sample_id, PFAS, Concentration)
 
 # Making boxplot
-plot1 <- ggplot(PFAS_long_new, aes(x = PFAS, y = Concentration, fill = PFAS)) +
-  geom_boxplot(outliers = FALSE) +
-  labs(title = "Figure 1. Distribution of PFAS Concentrations",
-       x = "PFAS Type",
-       y = "Concentration (ng/mL)") + 
-  theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
-  theme(legend.title = element_text(color = "black", size = 12, face = "bold")) +
-  scale_fill_viridis_d(option = "viridis", name = "PFAS")
 
-plotly1 <- ggplotly(plot1, tooltip = "all") %>%
+plotly1 <- PFAS_long_new %>%
+  plot_ly(
+    x         = ~PFAS,
+    y         = ~Concentration,
+    type      = "box",
+    boxpoints = FALSE,
+    color     = ~PFAS,                                   
+    colors    = viridis::viridis(n = length(unique(PFAS_long_new$PFAS)))  
+  ) %>%
   layout(
-    width  = 1300,
-    height = 600, 
-    title = "Figure 1. Distribution of PFAS Concentrations",
-    xaxis = list(title = "PFAS Type"),
-    yaxis = list(title = "Concentration (ng/mL)", rangeslider = list(visible = TRUE)),
+    width  = 1150,
+    height = 600,
+    title  = list(text = "Figure 1. Distribution of PFAS Concentrations", font = list(size = 14)),
+    xaxis  = list(title = "PFAS Type"),
+    yaxis  = list(title = "Concentration (ng/mL)", rangeslider = list(visible = TRUE)),
     updatemenus = list(
       list(
-        buttons = list(
-          list(method = "relayout", args = list("yaxis.type", "linear"), label = "Linear Scale"),
-          list(method = "relayout", args = list("yaxis.type", "log"), label = "Log Scale")
-        ),
-        direction = "down",
-        showactive = TRUE,
-        x = 0.1,
-        xanchor = "left",
-        y = 1.2,
-        yanchor = "top"
+        direction   = "down",
+        showactive  = TRUE,
+        x           = 0.1,
+        xanchor     = "left",
+        y           = 1.2,
+        yanchor     = "top",
+        buttons     = list(
+          list(
+            method = "relayout",
+            args   = list(list(yaxis = list(type = "linear"))),
+            label  = "Linear Scale"
+          ),
+          list(
+            method = "relayout",
+            args   = list(list(yaxis = list(type = "log"))),
+            label  = "Log Scale"
+          )
+        )
       )
     )
   ) %>%
   config(
-    displayModeBar = TRUE,
+    displayModeBar      = TRUE,
     modeBarButtonsToAdd = c("lasso2d", "select2d")
   )
+
 
 plotly1
 
@@ -107,9 +113,9 @@ plotly1
 Row
 -----------------------------------------------------------------------
 ### **Overview & Key Takeaway**
-The purpose of these 4 interactive plots was to understand how cholesterol, systolic blood pressure, hemoglobin-A1C, and glucose levels are affected when exposed to different quantiles of a combined PFAS mixture. If the lines cross the dotted lines, the relationship is not statistically significant. 
+These four interactive charts show how cholesterol, systolic blood pressure, hemoglobin-A1C, and glucose change at different levels of per- and polyfluoroalkyl substances (PFAS), also known as “forever chemicals.” Whenever a line crosses a dashed threshold, the change is too uncertain to be meaningful.
 
-In the cholesterol Plotly, when hovered over, it suggests that exposure to a PFAS mixture increased cholesterol levels (estimate value = 4.33) after reaching the 75th percentile of exposure, although not statistically significant. Sytolic blood pressure is also statistically nonsignifcant and does not define a clear trend.
+In the cholesterol chart, hovering suggests a rise of about four points once PFAS exposure reaches the top 25%, but this increase isn’t statistically reliable. The systolic blood pressure chart likewise shows no clear or dependable trend with PFAS exposure.
 
 Row
 -----------------------------------------------------------------------
@@ -122,22 +128,34 @@ bkmr_choles_model <- readRDS(here::here("data", "bkmr_choles_model.rds"))
 # Generate overall risk summary for cholesterol
 risks.overall_choles <- OverallRiskSummaries(fit = bkmr_choles_model, qs = seq(0.25, 0.75, by = 0.05), q.fixed = 0.5) 
 
-bkmr_choles_plot <- ggplot(risks.overall_choles, aes(quantile, est, ymin = est - 1.96 * sd, ymax = est + 1.96 * sd)) + 
+bkmr_choles_plot <- ggplot(
+  data = risks.overall_choles,
+  mapping = aes(
+    x = quantile,
+    y = est,
+    ymin = est - 1.96 * sd,
+    ymax = est + 1.96 * sd,
+    text = paste0(
+      "Mean: ", round(est, 2), "<br>",
+      "95% CI: [", round(est - 1.96 * sd, 2), ", ", round(est + 1.96 * sd, 2), "]"
+    )
+  )
+) +
   geom_hline(yintercept = 0, lty = 2, col = "brown") +
-  geom_pointrange() +    
+  geom_pointrange() +
   theme_minimal() +
   theme(plot.title = element_text(hjust = 0.5, size = 8)) +
   xlab("Quantiles of Joint Exposures") +
   ylab("Overall PFAS Mixture Effect on Total Cholesterol")
 
-plotly2_choles <- ggplotly(bkmr_choles_plot, tooltip = "all") %>% 
+plotly2_choles <- ggplotly(bkmr_choles_plot, tooltip = "text") %>% 
   layout(
     title = list(
       text = "Figure 2. Total Effect of PFAS Mixture on Total Cholesterol Levels",
       font = list(size = 12)
     ),
     xaxis = list(title = "Quantiles of Joint Exposure"),
-    yaxis = list(title = "Overall Effect"),
+    yaxis = list(title = "Overall Effect (No unit)"),
     updatemenus = list(
       list(
         type = "slider",
@@ -166,7 +184,17 @@ plotly2_choles
 bkmr_SBP_model <- readRDS(here::here("data", "bkmr_SBP_model.rds"))
 risks.overall_SBP <- OverallRiskSummaries(fit = bkmr_SBP_model, qs = seq(0.25, 0.75, by = 0.05), q.fixed = 0.5)
 
-bkmr_SBP_plot <- ggplot(risks.overall_SBP, aes(quantile, est, ymin = est - 1.96 * sd, ymax = est + 1.96 * sd)) + 
+bkmr_SBP_plot <- ggplot(risks.overall_SBP, mapping = aes(
+    x = quantile,
+    y = est,
+    ymin = est - 1.96 * sd,
+    ymax = est + 1.96 * sd,
+    text = paste0(
+      "Mean: ", round(est, 2), "<br>",
+      "95% CI: [", round(est - 1.96 * sd, 2), ", ", round(est + 1.96 * sd, 2), "]"
+    )
+  )
+) + 
   geom_hline(yintercept = 0, lty = 2, col = "brown") +
   geom_pointrange() +    
   theme_minimal() +
@@ -174,14 +202,14 @@ bkmr_SBP_plot <- ggplot(risks.overall_SBP, aes(quantile, est, ymin = est - 1.96 
   xlab("Quantiles of Joint PFAS Exposures") +
   ylab("Overall Mixture Effect on Systolic Blood Pressure")
 
-plotly3_SBP <- ggplotly(bkmr_SBP_plot, tooltip = "all") %>% 
+plotly3_SBP <- ggplotly(bkmr_SBP_plot, tooltip = "text") %>% 
   layout(
     title = list(
           text = "Figure 3. Total Effect of PFAS Mixture on Systolic Blood Pressure (SBP)",
           font = list(size = 12)
             ),
     xaxis = list(title = "Quantiles of Joint Exposure"),
-    yaxis = list(title = "Overall Effect"),
+    yaxis = list(title = "Overall Effect (No unit)"),
     updatemenus = list(
       list(
         type = "slider",
@@ -209,12 +237,10 @@ plotly3_SBP
 ============
 Row
 -----------------------------------------------------------------------
-### **Overview & Key Takeaway**
-The purpose of these 4 interactive plots was to understand how cholesterol, systolic blood pressure, hemoglobin-A1C, and glucose levels are affected when exposed to different quantiles of a combined PFAS mixture. If the lines cross the dotted lines, the relationship is not statistically significant.
+### **Key Takeaway**
+In the hemoglobin-A1C chart, levels dip as exposure to per- and polyfluoroalkyl substances (PFAS) increases, but the drop is not reliable enough to be sure it isn’t due to chance.
 
-
-Hemoglobin A1C has a clear downward trend meaning, as the mixtures exposure increases the HA1C levels are decreasing but does not display a statistically significant relationship.
-Glucose is also statistically nonsignifcant and does not define a clear trend.
+The glucose chart likewise shows no clear pattern with PFAS exposure and isn’t dependable enough to draw a firm conclusion.
 
 Row
 -----------------------------------------------------------------------
@@ -223,22 +249,30 @@ Row
 bkmr_hemo_model <- readRDS(here::here("data", "bkmr_hemo_model.rds"))
 risks.overall_hemo <- OverallRiskSummaries(fit = bkmr_hemo_model, qs = seq(0.25, 0.75, by = 0.05), q.fixed = 0.5)
 
-bkmr_hemo_plot <- ggplot(risks.overall_hemo, aes(quantile, est, ymin = est - 1.96 * sd, ymax = est + 1.96 * sd)) + 
-  geom_hline(yintercept = 0, lty = 2, col = "brown") +
-  geom_pointrange() +    
+bkmr_hemo_plot <- ggplot(data = risks.overall_hemo,  mapping = aes(
+    x = quantile,
+    y = est,
+    ymin = est - 1.96 * sd,
+    ymax = est + 1.96 * sd,
+    text = paste0(
+      "Mean: ", round(est, 2), "<br>",
+      "95% CI: [", round(est - 1.96 * sd, 2), ", ", round(est + 1.96 * sd, 2), "]"
+    )
+  )
+)  + geom_hline(yintercept = 0, lty = 2, col = "brown") + geom_pointrange() +    
   theme_minimal() +
   theme(plot.title = element_text(hjust = 0.5, size = 8)) +
   xlab("Quantiles of Joint PFAS Exposures") +
   ylab("Overall Mixture Effect on Hemoglobin A1c")
 
-plotly4_hemo <- ggplotly(bkmr_hemo_plot, tooltip = "all") %>% 
+plotly4_hemo <- ggplotly(bkmr_hemo_plot, tooltip = "text") %>% 
   layout(
     title = list(
       text = "Figure 4. Total Effect of PFAS Mixture on Hemoglobin A1C Levels",
       font = list(size = 12)
             ),
     xaxis = list(title = "Quantiles of Joint Exposure"),
-    yaxis = list(title = "Overall Effect"),
+    yaxis = list(title = "Overall Effect (No unit)"),
     updatemenus = list(
       list(
         type = "slider",
@@ -265,22 +299,31 @@ plotly4_hemo
 bkmr_glucose_model <- readRDS(here::here("data", "bkmr_glucose_model.rds"))
 risks.overall_glucose <- OverallRiskSummaries(fit = bkmr_glucose_model, qs = seq(0.25, 0.75, by = 0.05), q.fixed = 0.5)
 
-bkmr_glucose_plot <- ggplot(risks.overall_glucose, aes(quantile, est, ymin = est - 1.96 * sd, ymax = est + 1.96 * sd)) + 
-  geom_hline(yintercept = 0, lty = 2, col = "brown") +
-  geom_pointrange() +    
+bkmr_glucose_plot <- ggplot(data = risks.overall_glucose,  
+    mapping = aes(
+    x = quantile,
+    y = est,
+    ymin = est - 1.96 * sd,
+    ymax = est + 1.96 * sd,
+    text = paste0(
+      "Mean: ", round(est, 2), "<br>",
+      "95% CI: [", round(est - 1.96 * sd, 2), ", ", round(est + 1.96 * sd, 2), "]"
+    )
+  )
+) + geom_hline(yintercept = 0, lty = 2, col = "brown") + geom_pointrange() +    
   theme_minimal() +
   theme(plot.title = element_text(hjust = 0.5, size = 8)) +
   xlab("Quantiles of Joint PFAS Exposures") +
   ylab("Overall Mixture Effect on Glucose")
 
-plotly5_glucose <- ggplotly(bkmr_glucose_plot, tooltip = "all") %>% 
+plotly5_glucose <- ggplotly(bkmr_glucose_plot, tooltip = "text") %>% 
   layout(
     title = list(
       text = "Figure 5. Total Effect of PFAS Mixture on Glucose Levels",
       font = list(size = 12)
             ),
     xaxis = list(title = "Quantiles of Joint Exposure"),
-    yaxis = list(title = "Overall Effect"),
+    yaxis = list(title = "Overall Effect (No unit)"),
     updatemenus = list(
       list(
         type = "slider",
